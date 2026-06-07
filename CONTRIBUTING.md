@@ -1,7 +1,9 @@
 # Contributing
 
 Use branches and pull requests for all changes after initial bootstrap. Run local
-validation before opening a PR and use squash merge after CI and review pass.
+validation before opening a PR and use squash merge after CI and any required
+panel sign-off. GitHub's required approval count is intentionally 0 so the solo
+maintainer can merge their own PR after checks pass.
 
 ## Local validation
 
