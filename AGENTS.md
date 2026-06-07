@@ -27,14 +27,16 @@ test ! -e "$out/bin/firefox-virgl-vaapi"
 
 ## Contribution workflow
 
-After initial repository bootstrap, nobody direct-pushes to `main`. All changes
-use this flow:
+After initial repository bootstrap, nobody direct-pushes to `main`. GitHub's
+required approval count is intentionally 0 so the solo maintainer can merge
+their own PR after CI and any required panel sign-off. All changes use this
+flow:
 
 1. Create a topic branch.
 2. Run local validation.
 3. Open a pull request.
 4. Wait for required CI and conversation resolution.
-5. Squash-merge after review requirements are met.
+5. Squash-merge after required checks and any panel requirements are met.
 
 ## 8-reviewer panel sign-off policy
 
@@ -45,6 +47,8 @@ at each phase boundary. Each reviewer returns JSON with `engineer`, `signoff`,
 
 ## Branch protection expectation
 
-Protect `main` after bootstrap: require PRs, PR review, stale-review dismissal,
-required CI, resolved conversations, no force-pushes, no branch deletion, and no
-direct pushes for anyone.
+Protect `main` after bootstrap: require PRs, required CI, resolved
+conversations, no force-pushes, no branch deletion, and no direct pushes for
+anyone. Keep GitHub-native required approval count at 0 for solo-maintainer
+self-merge; non-trivial plan-driven work still requires panel sign-off before
+merge.
