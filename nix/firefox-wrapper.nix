@@ -13,11 +13,68 @@
 , extraEnv ? { }
 , lockedPreferences ? { }
 , extraPolicies ? { }
-}:
+, extraPrefsFiles ? [ ]
+, nativeMessagingHosts ? [ ]
+, cfg ? { }
+, ...
+}@args:
 
 let
-  firefoxName = firefox.pname or (lib.getName firefox);
-  firefoxVersion = firefox.version or (lib.getVersion firefox);
+  wrapperArgNames = [
+    "lib"
+    "stdenvNoCC"
+    "makeWrapper"
+    "virgl-vaapi-compat"
+    "firefox"
+    "aliasName"
+    "firefoxBinary"
+    "libvaDriverName"
+    "libvaDriversPathExtra"
+    "renderNode"
+    "renderer"
+    "glVersion"
+    "extraEnv"
+    "lockedPreferences"
+    "extraPolicies"
+    "extraPrefsFiles"
+    "nativeMessagingHosts"
+    "cfg"
+  ];
+
+  forwardedOverrideArgs = builtins.removeAttrs args wrapperArgNames;
+
+  prefValue = value:
+    if builtins.isBool value then
+      (if value then "true" else "false")
+    else if builtins.isInt value then
+      toString value
+    else
+      builtins.toJSON value;
+
+  vaapiPrefsFile = builtins.toFile "firefox-virgl-vaapi-autoconfig.js" (
+    lib.concatStringsSep "\n" (
+      lib.mapAttrsToList
+        (name: policy: ''lockPref("${name}", ${prefValue policy.Value});'')
+        lockedPreferencePolicies
+    ) + "\n"
+  );
+
+  mergeFirefoxArgs = old: forwardedOverrideArgs // {
+    extraPrefsFiles = (old.extraPrefsFiles or [ ]) ++ extraPrefsFiles ++ [ vaapiPrefsFile ];
+    nativeMessagingHosts = (old.nativeMessagingHosts or [ ]) ++ nativeMessagingHosts;
+    cfg = (old.cfg or { }) // cfg;
+  };
+
+  firefoxWithModuleConfig = firefox.override mergeFirefoxArgs;
+
+  firefoxWithVaapiPolicies = firefoxWithModuleConfig.override (old: {
+    extraPolicies = lib.recursiveUpdate (old.extraPolicies or { }) {
+      Preferences = lockedPreferencePolicies;
+    };
+  });
+
+  firefoxName = firefoxWithVaapiPolicies.pname or (lib.getName firefoxWithVaapiPolicies);
+  firefoxVersion = firefoxWithVaapiPolicies.version or (lib.getVersion firefoxWithVaapiPolicies);
 
   libvaDriversPath = lib.concatStringsSep ":" (
     [ "${virgl-vaapi-compat}/lib/dri" ] ++ libvaDriversPathExtra
@@ -85,7 +142,7 @@ stdenvNoCC.mkDerivation {
     runHook preInstall
 
     mkdir -p "$out"
-    cp -a --no-preserve=ownership ${firefox}/. "$out/"
+    cp -a --no-preserve=ownership ${firefoxWithVaapiPolicies}/. "$out/"
     chmod -R u+w "$out"
 
     main="$out/bin/${firefoxBinary}"
@@ -93,7 +150,7 @@ stdenvNoCC.mkDerivation {
       main="$(find "$out/bin" -maxdepth 1 -type f -perm -0100 | sort | head -n 1 || true)"
     fi
     if [ -z "$main" ] || [ ! -e "$main" ]; then
-      echo "Could not find Firefox executable '${firefoxBinary}' in ${firefox}" >&2
+      echo "Could not find Firefox executable '${firefoxBinary}' in ${firefoxWithVaapiPolicies}" >&2
       exit 1
     fi
 
@@ -185,7 +242,8 @@ SH
   '';
 
   passthru = {
-    inherit firefox glVersion policyDocument renderNode renderer virgl-vaapi-compat wrapperEnv;
+    firefox = firefoxWithVaapiPolicies;
+    inherit glVersion policyDocument renderNode renderer virgl-vaapi-compat wrapperEnv;
   };
 
   meta = (firefox.meta or { }) // {

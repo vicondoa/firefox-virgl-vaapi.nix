@@ -42,19 +42,41 @@
         });
 
       checks = forAllSystems (system:
-        let pkgs = pkgsFor system;
+        let
+          pkgs = pkgsFor system;
+          testNativeHost = pkgs.runCommand "firefox-test-native-messaging-host" { } ''
+            mkdir -p "$out/lib/mozilla/native-messaging-hosts"
+            cat > "$out/lib/mozilla/native-messaging-hosts/test-host.json" <<'JSON'
+            { "name": "test-host", "description": "test", "path": "/bin/false", "type": "stdio", "allowed_extensions": [] }
+            JSON
+          '';
+          moduleConfiguredFirefox = pkgs.firefox.override (old: {
+            extraPrefsFiles = (old.extraPrefsFiles or [ ])
+              ++ [ (pkgs.writeText "firefox-module-pref.js" ''pref("virgl-vaapi-compat.moduleOverride", true);'') ];
+            nativeMessagingHosts = (old.nativeMessagingHosts or [ ]) ++ [ testNativeHost ];
+            cfg = (old.cfg or { }) // { enableGnomeExtensions = false; };
+          });
+          variadicConfiguredFirefox = pkgs.firefox.override {
+            pname = "custom-firefox-name";
+          };
         in {
           default = pkgs.runCommand "firefox-virgl-vaapi-check" { } ''
             set -eu
             mkdir -p "$out"
             test -x ${pkgs.firefox}/bin/firefox
+            test -x ${moduleConfiguredFirefox}/bin/firefox
+            test "${variadicConfiguredFirefox.pname}" = "custom-firefox-name"
             test ! -e ${pkgs.firefox}/bin/firefox-virgl
             test ! -e ${pkgs.firefox}/bin/firefox-virgl-vaapi
             test ! -e ${pkgs.firefox}/bin/firefox.virgl-vaapi-original
             test ! -e ${pkgs.firefox}/bin/.firefox-wrapped
             find ${pkgs.firefox}/lib -path '*/distribution/policies.json' -print -quit | grep -q .
+            grep -R "virgl-vaapi-compat.moduleOverride" ${moduleConfiguredFirefox}/lib
+            grep -R "media.ffmpeg.vaapi.enabled" ${moduleConfiguredFirefox}/lib
+            find ${moduleConfiguredFirefox}/lib -path '*/native-messaging-hosts/test-host.json' -print -quit | grep -q .
             find ${pkgs.firefox}/lib -path '*/glxtest' -type f -perm -0100 -print -quit | grep -q .
             ln -s ${pkgs.firefox} "$out/firefox"
+            ln -s ${moduleConfiguredFirefox} "$out/module-configured-firefox"
           '';
         });
 

@@ -29,3 +29,8 @@ as the underlying browser to avoid recursive wrapping. It is self-contained and
 also provides `pkgs.virgl-vaapi-compat` from the generic shim input. Do not also
 install a stock Firefox package in the same profile, because both packages
 provide `bin/firefox`.
+
+The wrapper accepts the extra arguments that the NixOS `programs.firefox` module
+passes through `.override`, including `extraPrefsFiles`, `nativeMessagingHosts`,
+and `cfg`. That lets downstream modules install native messaging hosts and
+extension policies while preserving the VA-API wrapper.
