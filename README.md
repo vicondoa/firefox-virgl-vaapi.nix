@@ -31,6 +31,10 @@ The package installs `bin/firefox`. It intentionally does not install
 `firefox-virgl` or `firefox-virgl-vaapi` command aliases; downstream systems that
 use this package should make it the only Firefox provider in the profile.
 
+The wrapper is compatible with the NixOS `programs.firefox` module's `.override`
+path, so downstream modules can still add Firefox policies, native messaging
+hosts, and extension configuration.
+
 ## Documentation
 
 - [`docs/how-it-works.md`](docs/how-it-works.md)
