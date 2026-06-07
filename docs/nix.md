@@ -13,7 +13,7 @@ nix build github:vicondoa/firefox-virgl-vaapi.nix#firefox
 | `packages.<system>.firefox` / `packages.<system>.default` | Wrapped Firefox package exposing `bin/firefox`. |
 | `checks.<system>.default` | Verifies `bin/firefox` exists, `firefox-virgl*` aliases do not exist, policies are installed, and the `glxtest` stub exists. |
 | `overlays.default` | Self-contained overlay that brings in the generic shim package and replaces `pkgs.firefox` with the wrapped package built from `prev.firefox`. |
-| `lib.wrapFirefoxVirglVaapi` | Importable wrapper function for advanced downstream composition. Its arguments match `nix/firefox-wrapper.nix`; the stable arguments are `firefox`, `virgl-vaapi-compat`, `aliasName`, `firefoxBinary`, `renderNode`, `renderer`, `glVersion`, `extraEnv`, `lockedPreferences`, and `extraPolicies`. |
+| `lib.wrapFirefoxVirglVaapi` | Importable wrapper function for advanced downstream composition. Its arguments match `nix/firefox-wrapper.nix`; the stable arguments are `firefox`, `virgl-vaapi-compat`, `aliasName`, `firefoxBinary`, `renderNode`, `renderer`, `glVersion`, `extraEnv`, `lockedPreferences`, `extraPolicies`, `extraPrefsFiles`, `nativeMessagingHosts`, and `cfg`. Other override arguments are forwarded to the underlying Firefox package. |
 
 Use the overlay when composing with an existing nixpkgs instance:
 

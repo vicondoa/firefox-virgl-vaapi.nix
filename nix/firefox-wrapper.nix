@@ -68,9 +68,12 @@ let
   firefoxWithModuleConfig = firefox.override mergeFirefoxArgs;
 
   firefoxWithVaapiPolicies = firefoxWithModuleConfig.override (old: {
-    extraPolicies = lib.recursiveUpdate (old.extraPolicies or { }) {
-      Preferences = lockedPreferencePolicies;
-    };
+    extraPolicies =
+      lib.recursiveUpdate
+        (lib.recursiveUpdate { DisableAppUpdate = true; } (old.extraPolicies or { }))
+        (lib.recursiveUpdate extraPolicies {
+          Preferences = lockedPreferencePolicies;
+        });
   });
 
   firefoxName = firefoxWithVaapiPolicies.pname or (lib.getName firefoxWithVaapiPolicies);
@@ -121,14 +124,6 @@ let
     })
     (defaultLockedPreferences // lockedPreferences);
 
-  policyDocument = {
-    policies = lib.recursiveUpdate {
-      DisableAppUpdate = true;
-      Preferences = lockedPreferencePolicies;
-    } extraPolicies;
-  };
-
-  policiesJson = builtins.toJSON policyDocument;
 in
 
 stdenvNoCC.mkDerivation {
@@ -179,11 +174,6 @@ stdenvNoCC.mkDerivation {
 
       [ -d "$app_dir" ] || continue
       found_app_dir=1
-
-      mkdir -p "$app_dir/distribution"
-      cat > "$app_dir/distribution/policies.json" <<'EOF'
-${policiesJson}
-EOF
 
       rm -f "$app_dir/glxtest"
       cat > "$app_dir/glxtest" <<'SH'
@@ -243,7 +233,7 @@ SH
 
   passthru = {
     firefox = firefoxWithVaapiPolicies;
-    inherit glVersion policyDocument renderNode renderer virgl-vaapi-compat wrapperEnv;
+    inherit glVersion lockedPreferencePolicies renderNode renderer virgl-vaapi-compat wrapperEnv;
   };
 
   meta = (firefox.meta or { }) // {

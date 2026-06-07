@@ -54,6 +54,12 @@
             extraPrefsFiles = (old.extraPrefsFiles or [ ])
               ++ [ (pkgs.writeText "firefox-module-pref.js" ''pref("virgl-vaapi-compat.moduleOverride", true);'') ];
             nativeMessagingHosts = (old.nativeMessagingHosts or [ ]) ++ [ testNativeHost ];
+            extraPolicies = lib.recursiveUpdate (old.extraPolicies or { }) {
+              ExtensionSettings."review@example.test" = {
+                installation_mode = "force_installed";
+                install_url = "https://example.invalid/review.xpi";
+              };
+            };
             cfg = (old.cfg or { }) // { enableGnomeExtensions = false; };
           });
           variadicConfiguredFirefox = pkgs.firefox.override {
@@ -74,6 +80,7 @@
             grep -R "virgl-vaapi-compat.moduleOverride" ${moduleConfiguredFirefox}/lib
             grep -R "media.ffmpeg.vaapi.enabled" ${moduleConfiguredFirefox}/lib
             find ${moduleConfiguredFirefox}/lib -path '*/native-messaging-hosts/test-host.json' -print -quit | grep -q .
+            grep -R "review@example.test" ${moduleConfiguredFirefox}/lib
             find ${pkgs.firefox}/lib -path '*/glxtest' -type f -perm -0100 -print -quit | grep -q .
             ln -s ${pkgs.firefox} "$out/firefox"
             ln -s ${moduleConfiguredFirefox} "$out/module-configured-firefox"
